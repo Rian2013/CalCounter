@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CalCounter 🍎</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f8f9fa; margin:20px; text-align:center; }
+    h1 { color:#2c3e50; }
+    input, button { padding:8px; margin:5px; border-radius:6px; border:1px solid #ccc; font-size:15px; }
+    button { background:#27ae60; color:white; cursor:pointer; }
+    button:hover { background:#2ecc71; }
+    .meal { background:#fff; border:1px solid #ccc; border-radius:10px; margin:15px auto; padding:15px; width:80%; max-width:400px; text-align:left; }
+    .meal h2 { margin-top:0; }
+    ul { list-style:none; padding:0; }
+    #grandTotal { font-size:22px; margin-top:20px; color:#e74c3c; }
+    #loginSection, #signupSection, #appSection { display:none; }
+  </style>
+</head>
+<body>
+  <h1>CalCounter 🍎</h1>
+
+  <!-- Login -->
+  <div id="loginSection">
+    <h2>Login</h2>
+    <input type="text" id="loginUser" placeholder="Username"><br>
+    <input type="password" id="loginPass" placeholder="Password"><br>
+    <button onclick="login()">Login</button><br>
+    <p>Don't have an account? <a href="#" onclick="showSignup()">Sign Up</a></p>
+  </div>
+
+  <!-- Signup -->
+  <div id="signupSection">
+    <h2>Sign Up</h2>
+    <input type="text" id="signupUser" placeholder="Username"><br>
+    <input type="password" id="signupPass" placeholder="Password"><br>
+    <button onclick="signup()">Sign Up</button><br>
+    <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
+  </div>
+
+  <!-- Main App -->
+  <div id="appSection">
+    <button onclick="logout()">Logout</button>
+    <h2>Welcome, <span id="currentUser"></span>!</h2>
+
+    <div class="meal" id="breakfast">
+      <h2>Breakfast</h2>
+      <input type="text" id="bfFood" placeholder="Food">
+      <input type="number" id="bfCal" placeholder="Calories">
+      <button onclick="addFood('breakfast')">Add</button>
+      <ul id="bfList"></ul>
+      <p>Total: <span id="bfTotal">0</span> cal</p>
+    </div>
+
+    <div class="meal" id="lunch">
+      <h2>Lunch</h2>
+      <input type="text" id="lFood" placeholder="Food">
+      <input type="number" id="lCal" placeholder="Calories">
+      <button onclick="addFood('lunch')">Add</button>
+      <ul id="lList"></ul>
+      <p>Total: <span id="lTotal">0</span> cal</p>
+    </div>
+
+    <div class="meal" id="dinner">
+      <h2>Dinner</h2>
+      <input type="text" id="dFood" placeholder="Food">
+      <input type="number" id="dCal" placeholder="Calories">
+      <button onclick="addFood('dinner')">Add</button>
+      <ul id="dList"></ul>
+      <p>Total: <span id="dTotal">0</span> cal</p>
+    </div>
+
+    <div class="meal" id="snacks">
+      <h2>Snacks</h2>
+      <input type="text" id="sFood" placeholder="Food">
+      <input type="number" id="sCal" placeholder="Calories">
+      <button onclick="addFood('snacks')">Add</button>
+      <ul id="sList"></ul>
+      <p>Total: <span id="sTotal">0</span> cal</p>
+    </div>
+
+    <h2 id="grandTotal">Grand Total: 0 cal</h2>
+  </div>
+
+<script>
+  // === LocalStorage User System ===
+  let currentUser = null;
+
+  function showLogin() {
+    document.getElementById("loginSection").style.display = "block";
+    document.getElementById("signupSection").style.display = "none";
+    document.getElementById("appSection").style.display = "none";
+  }
+
+  function showSignup() {
+    document.getElementById("signupSection").style.display = "block";
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("appSection").style.display = "none";
+  }
+
+  function signup() {
+    const user = document.getElementById("signupUser").value;
+    const pass = document.getElementById("signupPass").value;
+    if (!user || !pass) return alert("Please fill in both fields");
+    if (localStorage.getItem("user_" + user)) return alert("User already exists!");
+    localStorage.setItem("user_" + user, pass);
+    alert("Account created! Please login.");
+    showLogin();
+  }
+
+  function login() {
+    const user = document.getElementById("loginUser").value;
+    const pass = document.getElementById("loginPass").value;
+    const savedPass = localStorage.getItem("user_" + user);
+    if (savedPass && savedPass === pass) {
+      currentUser = user;
+      localStorage.setItem("currentUser", user);
+      loadApp();
+    } else {
+      alert("Invalid username or password!");
+    }
+  }
+
+  function logout() {
+    currentUser = null;
+    localStorage.removeItem("currentUser");
+    showLogin();
+  }
+
+  // === Food Tracking ===
+  function addFood(meal) {
+    const food = document.getElementById(meal[0] + (meal==="snacks"?"":"f") + "Food").value;
+    const cal = parseInt(document.getElementById(meal[0] + (meal==="snacks"?"":"f") + "Cal").value);
+    if (!food || isNaN(cal)) return alert("Enter food and calories!");
+    let meals = JSON.parse(localStorage.getItem(currentUser + "_meals")) || {breakfast:[], lunch:[], dinner:[], snacks:[]};
+    meals[meal].push({food, cal});
+    localStorage.setItem(currentUser + "_meals", JSON.stringify(meals));
+    renderMeals(meals);
+  }
+
+  function renderMeals(meals) {
+    let grand = 0;
+    ["breakfast","lunch","dinner","snacks"].forEach(meal => {
+      let list = document.getElementById(meal[0] + (meal==="snacks"?"":"f") + "List");
+      list.innerHTML = "";
+      let total = 0;
+      meals[meal].forEach(item => {
+        let li = document.createElement("li");
+        li.textContent = item.food + " - " + item.cal + " cal";
+        list.appendChild(li);
+        total += item.cal;
+      });
+      document.getElementById(meal[0] + (meal==="snacks"?"":"f") + "Total").textContent = total;
+      grand += total;
+    });
+    document.getElementById("grandTotal").textContent = "Grand Total: " + grand + " cal";
+  }
+
+  function loadApp() {
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("signupSection").style.display = "none";
+    document.getElementById("appSection").style.display = "block";
+    document.getElementById("currentUser").textContent = currentUser;
+    let meals = JSON.parse(localStorage.getItem(currentUser + "_meals")) || {breakfast:[], lunch:[], dinner:[], snacks:[]};
+    renderMeals(meals);
+  }
+
+  // === Auto Login if remembered ===
+  window.onload = () => {
+    let savedUser = localStorage.getItem("currentUser");
+    if (savedUser) {
+      currentUser = savedUser;
+      loadApp();
+    } else {
+      showLogin();
+    }
+  }
+</script>
+</body>
+</html>
